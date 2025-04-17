@@ -94,7 +94,6 @@ class AxiosClient {
   private handleError = async (error: any) => {
     const originalRequest = error.config;
 
-    //TODO: check if the URL is in the public endpoint list
     if (
       (error.response?.status === 401,
       !some(publicEndPoints, (endpoint) => includes(originalRequest, endpoint)))
