@@ -2,7 +2,13 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { AxiosRequestConfig } from "axios";
 import httpClient from "./httpClient";
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQuery,
+  UseQueryOptions,
+} from "@tanstack/react-query";
+import { API_SERVICES } from "../constants";
 
 interface ApiServiceProps {
   url: string;
@@ -18,6 +24,11 @@ interface ApiQueryServiceProps<TOptions> extends ApiServiceProps {
   options: TOptions;
 }
 
+type ApiMutationOptionProps<T> = Omit<
+  UseMutationOptions<T, unknown, { data: Record<string, T> }, unknown>,
+  "mutationFn"
+>;
+
 interface IApiMethod {
   get: <T>(props: ApiServiceProps) => Promise<T>;
   post: <T>(props: ApiServiceProps) => Promise<T>;
@@ -25,6 +36,10 @@ interface IApiMethod {
   patch: <T>(props: ApiServiceProps) => Promise<T>;
   delete: <T>(props: ApiServiceProps) => Promise<T>;
 }
+
+const getApiEndpoint = (service: API_SERVICES): string => {
+  return `${process.env.NEXT_PUBLIC_API_ENDPOINT}/${service}`;
+};
 
 export const getApiMethodInstance = (apiService: string): IApiMethod => {
   return {
@@ -70,8 +85,8 @@ export const getApiMethodInstance = (apiService: string): IApiMethod => {
 
     delete: async <T = unknown>({
       url,
-      config,
       params,
+      config,
       id,
     }: ApiServiceProps) => {
       return httpClient.delete<T>(`${apiService}${url}/${id}`, {
@@ -120,9 +135,56 @@ export class ApiService {
     });
   };
 
-  usePut = () => {};
+  usePost = <T>(props: ApiServiceProps, options: ApiMutationOptionProps<T>) => {
+    const { url, params, config } = props;
 
-  usePatch = () => {};
+    return useMutation({
+      mutationFn: (data) =>
+        this.apiMethod.post<T>({ url, data, params, config }),
+      ...options,
+    });
+  };
 
-  useDelete = () => {};
+  usePut = <T>(props: ApiServiceProps, options: ApiMutationOptionProps<T>) => {
+    const { url, params, config } = props;
+
+    return useMutation({
+      mutationFn: (data) =>
+        this.apiMethod.put<T>({ url, data, params, config }),
+      ...options,
+    });
+  };
+
+  usePatch = <T>(
+    props: ApiServiceProps,
+    options: ApiMutationOptionProps<T>
+  ) => {
+    const { url, params, config } = props;
+
+    return useMutation({
+      mutationFn: (data) =>
+        this.apiMethod.patch<T>({ url, data, params, config }),
+      ...options,
+    });
+  };
+
+  useDelete = <T>(
+    props: ApiServiceProps,
+    options: ApiMutationOptionProps<T>
+  ) => {
+    const { url, params, config, id } = props;
+
+    return useMutation({
+      mutationFn: () => this.apiMethod.delete<T>({ url, params, config, id }),
+      ...options,
+    });
+  };
 }
+
+//Export api endpoint
+export const TEST_SERVICE_ENPOINT = getApiEndpoint(API_SERVICES.TEST_SERVICE);
+export const AUTH_SERVICE_ENPOINT = getApiEndpoint(API_SERVICES.AUTH_SERVICE);
+
+//Export api service method
+export const TestService = new ApiService(TEST_SERVICE_ENPOINT);
+export const AuthService = new ApiService(AUTH_SERVICE_ENPOINT);
